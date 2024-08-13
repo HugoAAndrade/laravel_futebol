@@ -50,7 +50,7 @@ class PlayerController extends Controller
 
         Player::create($playerData);
 
-        return redirect()->route('players.index')->with('success', 'Player created successfully.');
+        return redirect()->route('players.index')->with('success', 'Novo jogador adicionado!');
     }
 
     /**
@@ -83,7 +83,7 @@ class PlayerController extends Controller
 
         $player->update($request->except('_token'));
 
-        return redirect()->route('players.index')->with('success', 'Player updated successfully.');
+        return redirect()->route('players.index')->with('success', 'Jogador editado com sucesso!');
     }
 
     /**
@@ -94,7 +94,7 @@ class PlayerController extends Controller
         $player = Player::findOrFail($id);
         $player->delete();
 
-        return redirect()->route('players.index')->with('success', 'Player deleted successfully.');
+        return redirect()->route('players.index')->with('success', 'Jogador removido.');
     }
 
     /**
@@ -106,7 +106,7 @@ class PlayerController extends Controller
         $player->confirmed = true;
         $player->save();
 
-        return redirect()->route('players.index')->with('success', 'Player confirmed successfully.');
+        return redirect()->route('players.index')->with('success', 'Jogador confirmado com sucesso.');
     }
 
     public function cancelPresence($id)

@@ -3,12 +3,28 @@
 @section('content')
 <h1 class="text-3xl font-bold mb-4">Jogadores</h1>
 
-<!-- Exibir totais de jogadores confirmados e goleiros confirmados -->
+@if (session('success'))
+<div class="bg-green-500 text-white p-4 rounded-lg mb-4">
+    {{ session('success') }}
+</div>
+@endif
+
+@if (session('error'))
+<div class="bg-red-500 text-white p-4 rounded-lg mb-4">
+    {{ session('error') }}
+</div>
+@endif
+
 <div class="mb-4">
     <p class="text-lg font-bold">Total de jogadores confirmados: {{ $totalConfirmed }}</p>
     <p class="text-lg font-bold">Total de goleiros confirmados: {{ $totalGoalkeepersConfirmed }}</p>
     <p class="text-lg font-bold">Total de jogadores de linha confirmados: {{ $totalConfirmed - $totalGoalkeepersConfirmed }}</p>
 </div>
+
+<a href="{{ route('players.create') }}"
+    class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded mb-4 inline-block">Adicionar
+    Jogador
+</a>
 
 @php
 $minPlayersPerTeam = 2; // Número mínimo de jogadores por time para formar 2 times
@@ -26,12 +42,6 @@ $canFormTwoTeams = ($totalConfirmed - $totalGoalkeepersConfirmed) >= ($minPlayer
     <label for="number_of_players_per_team" class="block text-lg font-bold mb-2">Número de jogadores por time:</label>
     <input min="6" type="number" name="number_of_players_per_team" required
         class="w-full p-2 rounded bg-slate-800 text-white border-none mb-4 focus:outline-none">
-    <!-- Exibir a mensagem de erro, se existir -->
-    @if (session('error'))
-    <div class="bg-red-500 text-white p-4 rounded-lg mb-4">
-        {{ session('error') }}
-    </div>
-    @endif
     <button type="submit" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded">Sortear
         Times</button>
 </form>
@@ -43,7 +53,7 @@ $canFormTwoTeams = ($totalConfirmed - $totalGoalkeepersConfirmed) >= ($minPlayer
         Confirmado: {{ $player->confirmed ? 'Sim' : 'Não' }})
         <div class="flex items-center">
             @if ($player->confirmed)
-            <!-- Botão para cancelar presença -->
+
             <form action="{{ route('players.cancel', $player->id) }}" method="POST" class="inline-block ml-2">
                 @csrf
                 @method('POST')
@@ -52,7 +62,7 @@ $canFormTwoTeams = ($totalConfirmed - $totalGoalkeepersConfirmed) >= ($minPlayer
                     Presença</button>
             </form>
             @else
-            <!-- Botão para confirmar presença -->
+
             <form action="{{ route('players.confirm', $player->id) }}" method="POST" class="inline-block ml-2">
                 @csrf
                 <button type="submit"
