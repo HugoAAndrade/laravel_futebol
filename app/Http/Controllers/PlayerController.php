@@ -89,8 +89,9 @@ class PlayerController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Player $player)
+    public function destroy($id)
     {
+        $player = Player::findOrFail($id);
         $player->delete();
 
         return redirect()->route('players.index')->with('success', 'Player deleted successfully.');
