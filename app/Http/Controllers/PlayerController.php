@@ -128,16 +128,16 @@ class PlayerController extends Controller
         $numberOfPlayersPerTeam = $request->input('number_of_players_per_team');
 
         // Obter todos os jogadores confirmados
-        $confirmedPlayers = Player::where('confirmed', true)->get()->shuffle();
+        $confirmedPlayers = Player::where('confirmed', true)->get();
 
         // Separar goleiros e jogadores de linha
         $goalkeepers = $confirmedPlayers->filter(function ($player) {
             return $player->is_goalkeeper;
-        })->shuffle();
+        })->sortByDesc('level'); // Ordenar por nível para balancear os times
 
         $fieldPlayers = $confirmedPlayers->filter(function ($player) {
             return !$player->is_goalkeeper;
-        })->shuffle();
+        })->sortByDesc('level'); // Ordenar por nível para balancear os times
 
         // Verificar se há jogadores confirmados suficientes para formar pelo menos dois times
         if ($confirmedPlayers->count() < $numberOfPlayersPerTeam * 2) {
@@ -150,29 +150,50 @@ class PlayerController extends Controller
 
         $teams = [];
 
-        // Inicializar os times completos
+        // Inicializar os times
         for ($i = 1; $i <= $totalTeams; $i++) {
-            $teams['team' . $i] = [];
+            $teams['Time ' . $i] = [];
         }
 
-        // Garantir que cada time tenha pelo menos um goleiro
+        // Distribuir goleiros balanceadamente entre os times
         foreach (array_keys($teams) as $team) {
             if (!$goalkeepers->isEmpty()) {
                 $teams[$team][] = $goalkeepers->shift();
             }
         }
 
-        // Preencher os times com o restante dos jogadores de linha
+        // Distribuir os jogadores de linha balanceadamente entre os times
         foreach ($teams as $teamName => &$team) {
             while (count($team) < $numberOfPlayersPerTeam && !$fieldPlayers->isEmpty()) {
-                $team[] = $fieldPlayers->shift();
+                $player = $fieldPlayers->shift();
+                $team[] = $player;
             }
         }
 
-        // Adicionar os jogadores restantes ao último time, se houver
+        // Se ainda houver jogadores restantes, distribuí-los nos times existentes, respeitando o limite por time
         if (!$fieldPlayers->isEmpty()) {
-            $lastTeam = 'team' . ($totalTeams + 1);
+            foreach ($teams as &$team) {
+                if (count($team) < $numberOfPlayersPerTeam && !$fieldPlayers->isEmpty()) {
+                    $team[] = $fieldPlayers->shift();
+                }
+            }
+        }
+
+        // Adicionar os jogadores restantes ao último time, se ainda houver jogadores restantes
+        if (!$fieldPlayers->isEmpty()) {
+            $lastTeam = 'Time ' . ($totalTeams + 1);
             $teams[$lastTeam] = $fieldPlayers->all();
+        }
+
+        // Validar se há mais de um goleiro em algum time, o que não é permitido
+        foreach ($teams as $teamName => &$team) {
+            $goalkeepersInTeam = array_filter($team, function ($player) {
+                return $player->is_goalkeeper;
+            });
+
+            if (count($goalkeepersInTeam) > 1) {
+                return redirect()->back()->with('error', 'Cada time só pode ter um goleiro.');
+            }
         }
 
         return view('teams', ['teams' => $teams]);

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layout')
 
 @section('content')
 <div class="container mx-auto p-6">
@@ -16,7 +16,7 @@
     </div>
     @endif
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
         @foreach ($teams as $teamName => $players)
         <div class="bg-slate-600 shadow-md rounded-lg p-4">
             <h2 class="text-2xl font-semibold mb-2 text-white">{{ ucfirst($teamName) }}</h2>
