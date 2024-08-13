@@ -124,78 +124,75 @@ class PlayerController extends Controller
 
     public function drawTeams(Request $request)
     {
-        // Obter o número de jogadores por time a partir do input
+        // Número de jogadores por time definido pelo usuário
         $numberOfPlayersPerTeam = $request->input('number_of_players_per_team');
 
         // Obter todos os jogadores confirmados
         $confirmedPlayers = Player::where('confirmed', true)->get();
 
-        // Separar goleiros e jogadores de linha
-        $goalkeepers = $confirmedPlayers->filter(function ($player) {
-            return $player->is_goalkeeper;
-        })->sortByDesc('level'); // Ordenar por nível para balancear os times
+        // Contar goleiros e jogadores de linha
+        $goalkeepersCount = $confirmedPlayers->filter(fn($player) => $player->is_goalkeeper)->count();
+        $fieldPlayersCount = $confirmedPlayers->filter(fn($player) => !$player->is_goalkeeper)->count();
 
-        $fieldPlayers = $confirmedPlayers->filter(function ($player) {
-            return !$player->is_goalkeeper;
-        })->sortByDesc('level'); // Ordenar por nível para balancear os times
+        // Calcular o número mínimo de jogadores de linha necessários para formar dois times completos
+        $requiredFieldPlayers = ($numberOfPlayersPerTeam - 1) * 2;
 
-        // Verificar se há jogadores confirmados suficientes para formar pelo menos dois times
-        if ($confirmedPlayers->count() < $numberOfPlayersPerTeam * 2) {
-            return redirect()->back()->with('error', 'Número insuficiente de jogadores confirmados.');
+        // Verificar se há jogadores suficientes para formar pelo menos dois times completos
+        if ($fieldPlayersCount < $requiredFieldPlayers) {
+            return redirect()->back()->with('error', 'Não é possível formar dois times completos com o número atual de jogadores de linha e goleiros. Você precisa de pelo menos ' . $requiredFieldPlayers . ' jogadores de linha. Atualmente, há apenas ' . $fieldPlayersCount . ' jogadores de linha confirmados. Reduza o número de jogadores por time ou confirme mais jogadores.');
         }
 
-        // Calcular o número de times necessários
-        $totalTeams = intdiv($confirmedPlayers->count(), $numberOfPlayersPerTeam);
-        $remainingPlayersCount = $confirmedPlayers->count() % $numberOfPlayersPerTeam;
+        // Verificar se há jogadores suficientes para formar pelo menos dois times
+        if ($confirmedPlayers->count() < $numberOfPlayersPerTeam * 2) {
+            return redirect()->back()->with('error', 'O número máximo de jogadores por time deve ser menor ou igual a ' . floor($confirmedPlayers->count() / 2));
+        }
 
-        $teams = [];
+        // Embaralhar os jogadores confirmados
+        $confirmedPlayers = $confirmedPlayers->shuffle();
+
+        // Separar os jogadores em goleiros e jogadores de linha
+        $goalkeepersCollection = $confirmedPlayers->filter(fn($player) => $player->is_goalkeeper)->shuffle();
+        $fieldPlayersCollection = $confirmedPlayers->filter(fn($player) => !$player->is_goalkeeper)->shuffle();
 
         // Inicializar os times
+        $teams = [];
+        $totalTeams = ceil($confirmedPlayers->count() / $numberOfPlayersPerTeam);
+
         for ($i = 1; $i <= $totalTeams; $i++) {
             $teams['Time ' . $i] = [];
         }
 
-        // Distribuir goleiros balanceadamente entre os times
-        foreach (array_keys($teams) as $team) {
-            if (!$goalkeepers->isEmpty()) {
-                $teams[$team][] = $goalkeepers->shift();
-            }
-        }
-
-        // Distribuir os jogadores de linha balanceadamente entre os times
+        // Preencher os times com goleiros primeiro, depois jogadores de linha
         foreach ($teams as $teamName => &$team) {
-            while (count($team) < $numberOfPlayersPerTeam && !$fieldPlayers->isEmpty()) {
-                $player = $fieldPlayers->shift();
-                $team[] = $player;
+            // Adicionar um goleiro se houver
+            if (!$goalkeepersCollection->isEmpty()) {
+                $team[] = $goalkeepersCollection->shift();
             }
         }
 
-        // Se ainda houver jogadores restantes, distribuí-los nos times existentes, respeitando o limite por time
-        if (!$fieldPlayers->isEmpty()) {
-            foreach ($teams as &$team) {
-                if (count($team) < $numberOfPlayersPerTeam && !$fieldPlayers->isEmpty()) {
-                    $team[] = $fieldPlayers->shift();
-                }
-            }
-        }
-
-        // Adicionar os jogadores restantes ao último time, se ainda houver jogadores restantes
-        if (!$fieldPlayers->isEmpty()) {
-            $lastTeam = 'Time ' . ($totalTeams + 1);
-            $teams[$lastTeam] = $fieldPlayers->all();
-        }
-
-        // Validar se há mais de um goleiro em algum time, o que não é permitido
+        // Preencher os times com jogadores de linha
         foreach ($teams as $teamName => &$team) {
-            $goalkeepersInTeam = array_filter($team, function ($player) {
-                return $player->is_goalkeeper;
-            });
-
-            if (count($goalkeepersInTeam) > 1) {
-                return redirect()->back()->with('error', 'Cada time só pode ter um goleiro.');
+            // Preencher com jogadores de linha até atingir o limite
+            while (count($team) < $numberOfPlayersPerTeam && !$fieldPlayersCollection->isEmpty()) {
+                $team[] = $fieldPlayersCollection->shift();
             }
         }
 
-        return view('teams', ['teams' => $teams]);
+        // Se ainda restarem jogadores de linha, distribuí-los no último time
+        $lastTeamName = 'Time ' . $totalTeams;
+        if (count($teams[$lastTeamName]) < $numberOfPlayersPerTeam) {
+            while (!$fieldPlayersCollection->isEmpty() && count($teams[$lastTeamName]) < $numberOfPlayersPerTeam) {
+                $teams[$lastTeamName][] = $fieldPlayersCollection->shift();
+            }
+        }
+
+        // Qualquer goleiro restante é não alocado
+        $remainingGoalkeepers = $goalkeepersCollection->all();
+
+        // Exibir os resultados na view
+        return view('teams', [
+            'teams' => $teams,
+            'remainingGoalkeepers' => $remainingGoalkeepers // Goleiros que ficaram de fora
+        ]);
     }
 }

@@ -6,19 +6,36 @@
 <!-- Exibir totais de jogadores confirmados e goleiros confirmados -->
 <div class="mb-4">
     <p class="text-lg font-bold">Total de jogadores confirmados: {{ $totalConfirmed }}</p>
+    <p class="text-lg font-bold">Total de goleiros confirmados: {{ $totalGoalkeepersConfirmed }}</p>
+    <p class="text-lg font-bold">Total de jogadores de linha confirmados: {{ $totalConfirmed - $totalGoalkeepersConfirmed }}</p>
 </div>
 
-<a href="{{ route('players.create') }}"
-    class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded mb-4 inline-block">Adicionar
-    Jogador</a>
-<form action="{{ route('players.drawTeams') }}" method="POST" class="mb-4">
+@php
+$minPlayersPerTeam = 2; // Número mínimo de jogadores por time para formar 2 times
+$canFormTwoTeams = ($totalConfirmed - $totalGoalkeepersConfirmed) >= ($minPlayersPerTeam - 1) * 2;
+@endphp
+
+@if (!$canFormTwoTeams)
+<div class="bg-yellow-500 text-white p-4 rounded-lg mb-4">
+    Não é possível formar dois times completos com os jogadores confirmados e o número atual de goleiros.
+</div>
+@endif
+
+<form action="{{ route('players.drawTeams') }}" method="POST" class="mb-4" @if(!$canFormTwoTeams) style="display:none;" @endif>
     @csrf
     <label for="number_of_players_per_team" class="block text-lg font-bold mb-2">Número de jogadores por time:</label>
-    <input min="1" max="6" type="number" name="number_of_players_per_team" required
+    <input min="6" type="number" name="number_of_players_per_team" required
         class="w-full p-2 rounded bg-slate-800 text-white border-none mb-4 focus:outline-none">
+    <!-- Exibir a mensagem de erro, se existir -->
+    @if (session('error'))
+    <div class="bg-red-500 text-white p-4 rounded-lg mb-4">
+        {{ session('error') }}
+    </div>
+    @endif
     <button type="submit" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded">Sortear
         Times</button>
 </form>
+
 <ul>
     @foreach ($players as $player)
     <li class="bg-slate-700 p-4 rounded mb-2 flex justify-between">
@@ -29,7 +46,7 @@
             <!-- Botão para cancelar presença -->
             <form action="{{ route('players.cancel', $player->id) }}" method="POST" class="inline-block ml-2">
                 @csrf
-                @method('POST') <!-- Pode ajustar conforme necessário -->
+                @method('POST')
                 <button type="submit"
                     class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-1 px-2 rounded">Cancelar
                     Presença</button>
