@@ -10,9 +10,9 @@
     $totalPlayers = count($players); // Conta o total de jogadores no time
     @endphp
     @if ($hasGoalkeeper && count($players) > 1)
-    <div class="bg-slate-600 shadow-md rounded-lg p-4 flex flex-col justify-between gap-2">
+    <div class="bg-slate-600 shadow-md rounded-lg p-4 flex flex-col gap-2">
         <h2 class="text-2xl font-semibold mb-2 text-white">{{ ucfirst($teamName) }}</h2>
-        <ul class="list-disc pl-5">
+        <ul class="list-disc pl-5 flex-1">
             @foreach ($players as $player)
             <li class="mb-1">
                 <span class="font-medium">{{ $player->name }}</span> - Nível: {{ $player->level }},
