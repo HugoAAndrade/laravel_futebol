@@ -48,10 +48,10 @@ $canFormTwoTeams = ($totalConfirmed - $totalGoalkeepersConfirmed) >= ($minPlayer
 
 <ul>
     @foreach ($players as $player)
-    <li class="bg-slate-700 p-4 rounded mb-2 flex justify-between">
+    <li class="bg-slate-700 p-4 rounded mb-2 flex flex-col justify-between md:flex-row">
         {{ $player->name }} (Nível: {{ $player->level }}, Goleiro: {{ $player->is_goalkeeper ? 'Sim' : 'Não' }},
         Confirmado: {{ $player->confirmed ? 'Sim' : 'Não' }})
-        <div class="flex items-center">
+        <div class="flex items-center justify-end mt-2 md:mt-2">
             @if ($player->confirmed)
 
             <form action="{{ route('players.cancel', $player->id) }}" method="POST" class="inline-block ml-2">
